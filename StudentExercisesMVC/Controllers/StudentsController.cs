@@ -122,23 +122,42 @@ namespace StudentExercisesMVC.Controllers
         // GET: Students/Create
         public ActionResult Create()
         {
-            return View();
+            StudentCreateViewModel viewModel =
+                new StudentCreateViewModel(_config.GetConnectionString("DefaultConnection"));
+            return View(viewModel);
         }
 
         // POST: Students/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public ActionResult Create(StudentCreateViewModel model)
         {
             try
             {
-                // TODO: Add insert logic here
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"INSERT INTO Student
+                    ( FirstName, LastName, SlackHandle, CohortId )
+                    VALUES
+                    ( @firstName, @lastName, @slackHandle, @cohortId )";
+                        cmd.Parameters.Add(new SqlParameter("@firstName", model.Student.FirstName));
+                        cmd.Parameters.Add(new SqlParameter("@lastName", model.Student.LastName));
+                        cmd.Parameters.Add(new SqlParameter("@slackHandle", model.Student.SlackHandle));
+                        cmd.Parameters.Add(new SqlParameter("@cohortId", model.Student.CohortId));
 
-                return RedirectToAction(nameof(Index));
+                        cmd.ExecuteNonQuery();
+
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
             }
             catch
             {
-                return View();
+                model.Cohorts = GetAllCohorts();
+                return View(model);
             }
         }
 
